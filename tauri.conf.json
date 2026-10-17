@@ -1,0 +1,43 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "../aura_ui",
+    "distDir": "../aura_ui"
+  },
+  "package": {
+    "productName": "Aura",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true
+    },
+    "bundle": {
+      "active": true,
+      "category": "Accessibility",
+      "identifier": "com.aura.accessibility",
+      "icon": [],
+      "macOS": {
+        "frameworks": [],
+        "minimumSystemVersion": "11.0",
+        "exceptionDomain": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "Aura",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": false
+      }
+    ]
+  }
+}

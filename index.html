@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura — Multimodal Intent Fusion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Global Canvas for Custom Cursors, Particles & Trails -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Top Navigation Bar -->
+  <header class="hud-header">
+    <div class="hud-brand">
+      <div class="brand-badge">AURA</div>
+      <span class="hud-tagline">Multimodal Intent Fusion</span>
+    </div>
+
+    <!-- Active Mode Navigation -->
+    <nav class="hud-nav">
+      <button class="nav-tab active" data-tab="onboarding">🐾 Pet Calibration</button>
+      <button class="nav-tab" data-tab="bubblewrap">🫧 Bubble Wrap Demo</button>
+      <button class="nav-tab" data-tab="theremin">🎵 Eye-Theremin</button>
+      <button class="nav-tab" data-tab="diagnostics">📊 Live Telemetry & ML</button>
+    </nav>
+
+    <!-- Failsafe Status Indicators -->
+    <div class="hud-status">
+      <div id="status-camera" class="status-pill offline" title="Live Camera & Gaze Tracking State">📷 Camera: Scanning...</div>
+      <div id="status-connected" class="status-pill offline">WebSocket Offline</div>
+      <div id="status-failsafe" class="status-pill normal">Failsafe: Active</div>
+      <button id="btn-killswitch" class="killswitch-btn" title="Emergency Spacebar abort">SPACE: KILLSWITCH</button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="hud-main">
+
+    <!-- 1. VIRTUAL PET CALIBRATION VIEW -->
+    <section id="view-onboarding" class="view-panel active">
+      <div class="calibration-container">
+        <div class="calib-intro">
+          <h2>Feed Pippin the Pet!</h2>
+          <p>Look at each apple as it appears and make your custom click sound to feed Pippin.<br>
+             This automatically maps your head/iris geometry and trains your acoustic classifier.</p>
+          <div class="calib-actions">
+            <button id="btn-start-calibration" class="action-btn glow">Start 9-Point Calibration</button>
+            <button id="btn-audio-setup" class="action-btn secondary">Sound Calibration (Click vs Noise)</button>
+          </div>
+        </div>
+
+        <!-- 9-Point Interactive Apple Targets -->
+        <div id="apple-target" class="apple-target hidden">
+          <div class="apple-visual">🍎</div>
+          <div class="target-pulse"></div>
+          <div class="target-label" id="target-label">Target 1/9</div>
+        </div>
+
+        <!-- Audio Setup Modal / Subview -->
+        <div id="audio-modal" class="audio-modal hidden">
+          <div class="audio-modal-card">
+            <h3>Sound Profile Tuning</h3>
+            <p>1. Record 5 clicks (tongue pop, hum, or palate click):</p>
+            <div class="rec-group">
+              <button id="btn-rec-click" class="action-btn">Record Click Sample (<span id="count-click">0</span>/5)</button>
+            </div>
+            <p style="margin-top: 15px;">2. Record 5 supra-threshold noises (cough, speech, typing):</p>
+            <div class="rec-group">
+              <button id="btn-rec-noise" class="action-btn secondary">Record Noise Sample (<span id="count-noise">0</span>/5)</button>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px;">
+              <button id="btn-finish-audio" class="action-btn glow">Calculate R_max & Save</button>
+              <button id="btn-close-audio" class="action-btn text">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calibration Results HUD -->
+        <div id="calib-results-card" class="calib-card hidden">
+          <h3>🎉 Calibration Matrix Computed!</h3>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-val" id="val-overall-err">--</div>
+              <div class="metric-lbl">Overall Mean Error</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" id="val-center-err">--</div>
+              <div class="metric-lbl">Center (Interpolation)</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" id="val-edge-err">--</div>
+              <div class="metric-lbl">Edge Error</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val" id="val-corner-err">--</div>
+              <div class="metric-lbl">Corner (Extrapolation)</div>
+            </div>
+          </div>
+          <div class="calib-footer">
+            <button id="btn-goto-bubbles" class="action-btn glow">Test on Bubble Wrap Sandbox →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. BUBBLE WRAP TEST SANDBOX -->
+    <section id="view-bubblewrap" class="view-panel">
+      <div class="sandbox-header">
+        <div>
+          <h2>The Bubble Wrap Test</h2>
+          <p>Visually proving speed, accuracy, and joy. Target any bubble and make your click sound to pop it!</p>
+        </div>
+        <div class="bubble-stats">
+          <div class="b-stat">Popped: <span id="stat-popped">0</span></div>
+          <div class="b-stat">Accuracy: <span id="stat-accuracy">100%</span></div>
+          <button id="btn-reset-bubbles" class="action-btn small">Reset Grid</button>
+        </div>
+      </div>
+      <div id="bubble-grid" class="bubble-grid">
+        <!-- 32 bubbles generated via JS -->
+      </div>
+    </section>
+
+    <!-- 3. EYE-THEREMIN PLAY MODE -->
+    <section id="view-theremin" class="view-panel">
+      <div class="sandbox-header">
+        <div>
+          <h2>Eye-Theremin Play Mode</h2>
+          <p>Look at different musical zones and hum or make your sound to express music!</p>
+        </div>
+      </div>
+      <div class="theremin-grid">
+        <div class="theremin-note" data-note="C4" style="--note-color: #ff4757;"><span>C4</span></div>
+        <div class="theremin-note" data-note="D4" style="--note-color: #ffa502;"><span>D4</span></div>
+        <div class="theremin-note" data-note="E4" style="--note-color: #2ed573;"><span>E4</span></div>
+        <div class="theremin-note" data-note="F4" style="--note-color: #1e90ff;"><span>F4</span></div>
+        <div class="theremin-note" data-note="G4" style="--note-color: #3742fa;"><span>G4</span></div>
+        <div class="theremin-note" data-note="A4" style="--note-color: #a55eea;"><span>A4</span></div>
+        <div class="theremin-note" data-note="B4" style="--note-color: #ff6b81;"><span>B4</span></div>
+        <div class="theremin-note" data-note="C5" style="--note-color: #70a1ff;"><span>C5</span></div>
+      </div>
+    </section>
+
+    <!-- 4. LIVE TELEMETRY & ML DIAGNOSTICS -->
+    <section id="view-diagnostics" class="view-panel">
+      <div class="diag-layout">
+        <div class="diag-card">
+          <h3>Gaze Coordinates & Pose</h3>
+          <p>Smoothed Screen Pos: (<span id="t-x">0</span>, <span id="t-y">0</span>)</p>
+          <p>Head Pose: Yaw: <span id="t-yaw">0°</span> | Pitch: <span id="t-pitch">0°</span> | Roll: <span id="t-roll">0°</span></p>
+          <div class="bar-container">
+            <label>Pitch (Abort at >25°):</label>
+            <div class="bar-track"><div id="bar-pitch" class="bar-fill" style="width: 20%;"></div></div>
+          </div>
+        </div>
+
+        <div class="diag-card">
+          <h3>Blendshapes & Blink Failsafe</h3>
+          <p>Left Blink: <span id="t-blink-l">0.0</span> | Right Blink: <span id="t-blink-r">0.0</span></p>
+          <p>Dynamic Threshold: <span id="t-dyn-thresh">0.50</span></p>
+          <p>Cursor Lock Status: <span id="t-lock-status" class="tag-status">Active</span></p>
+        </div>
+
+        <div class="diag-card">
+          <h3>Acoustic Intent Engine</h3>
+          <p>RMS Energy: <span id="t-rms">0.00</span> | Noise Floor: <span id="t-nfloor">0.00</span></p>
+          <p>Click Intent: <span id="t-click-intent" class="tag-click">False</span> (Conf: <span id="t-conf">0%</span>)</p>
+          <div class="bar-container">
+            <label>Microphone Gate:</label>
+            <div class="bar-track"><div id="bar-rms" class="bar-fill green" style="width: 10%;"></div></div>
+          </div>
+          <div style="margin-top: 15px;">
+            <button id="btn-oops-learn" class="action-btn small glow">"Oops, learn that" (Ingest Last 1.5s)</button>
+          </div>
+        </div>
+
+        <div class="diag-card">
+          <h3>Cursor Cosmetics & Settings</h3>
+          <label>Select Cursor Persona:</label>
+          <div class="persona-selector">
+            <button class="persona-btn active" data-persona="ufo">🛸 The UFO</button>
+            <button class="persona-btn" data-persona="wand">🪄 Magic Wand</button>
+            <button class="persona-btn" data-persona="ink">🖌️ Ink Brush</button>
+          </div>
+          <div style="margin-top: 15px;">
+            <label>Deadband Radius: <span id="lbl-deadband">15px</span></label>
+            <input type="range" id="slider-deadband" min="5" max="35" value="15" style="width: 100%;">
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- REACTIVE DESKTOP BUDDY MASCOT WIDGET -->
+  <aside id="desktop-buddy" class="desktop-buddy">
+    <div class="buddy-body">
+      <div class="buddy-eyes">
+        <div class="eye"><div class="pupil" id="pupil-left"></div></div>
+        <div class="eye"><div class="pupil" id="pupil-right"></div></div>
+      </div>
+      <div class="buddy-mouth"></div>
+      <div id="buddy-cap" class="sleeping-cap hidden">💤</div>
+    </div>
+    <div class="buddy-speech" id="buddy-speech">Pippin is ready!</div>
+  </aside>
+
+  <!-- Dwell-to-Zoom "Sniper" Magnifier Bubble -->
+  <div id="sniper-bubble" class="sniper-bubble hidden">
+    <div class="sniper-crosshair"></div>
+    <div class="sniper-zoom-tag">3x Zoom</div>
+  </div>
+
+  <!-- Snooze Dim Overlay -->
+  <div id="snooze-overlay" class="snooze-overlay">
+    <div class="snooze-card">
+      <div style="font-size: 54px; margin-bottom: 12px;">🌙💤</div>
+      <h2>Aura is Snoozing</h2>
+      <p>A "Shhhhh" snooze sound was detected.<br>Make your custom click sound or tap to Wake Up.</p>
+      <button id="btn-wake-up" class="action-btn glow">Wake Up Aura</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
